@@ -1,0 +1,204 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Blueprint Validation Helpers
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+        'uid', 'displayName', 'schoolClass', 'avatarColor',
+        'xp', 'streak', 'completedLevels', 'level1Stars', 'level2Stars', 'level3Stars',
+        'themeVariant', 'darkMode', 'systemLang', 'dailyReminderTime',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'displayName', 'schoolClass', 'avatarColor',
+        'xp', 'streak', 'completedLevels', 'level1Stars', 'level2Stars', 'level3Stars',
+        'themeVariant', 'darkMode', 'systemLang', 'dailyReminderTime',
+        'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      data.uid == request.auth.uid &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+      data.schoolClass is string && data.schoolClass.size() >= 1 && data.schoolClass.size() <= 40 &&
+      data.avatarColor is string && data.avatarColor.size() >= 4 && data.avatarColor.size() <= 20 &&
+      data.xp is int && data.xp >= 0 && data.xp <= 1000000 &&
+      data.streak is int && data.streak >= 0 && data.streak <= 3650 &&
+      data.completedLevels is int && data.completedLevels >= 0 && data.completedLevels <= 3 &&
+      data.level1Stars is int && data.level1Stars >= 0 && data.level1Stars <= 3 &&
+      data.level2Stars is int && data.level2Stars >= 0 && data.level2Stars <= 3 &&
+      data.level3Stars is int && data.level3Stars >= 0 && data.level3Stars <= 3 &&
+      data.themeVariant is string && data.themeVariant.size() <= 20 && (data.themeVariant == 'royal' || data.themeVariant == 'amethyst' || data.themeVariant == 'lavender') &&
+      data.darkMode is bool &&
+      data.systemLang is string && data.systemLang.size() == 2 && (data.systemLang == 'id' || data.systemLang == 'en') &&
+      data.dailyReminderTime is string && data.dailyReminderTime.size() >= 4 && data.dailyReminderTime.size() <= 10 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateVault(data) {
+      return data.keys().hasAll([
+        'uid', 'encryptedEmail', 'encryptedNotes', 'cipherAlgorithm', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'encryptedEmail', 'encryptedNotes', 'cipherAlgorithm', 'createdAt', 'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      data.uid == request.auth.uid &&
+      data.encryptedEmail is string && data.encryptedEmail.size() >= 1 && data.encryptedEmail.size() <= 512 &&
+      data.encryptedNotes is string && data.encryptedNotes.size() >= 1 && data.encryptedNotes.size() <= 1024 &&
+      data.cipherAlgorithm is string && data.cipherAlgorithm.size() == 11 && data.cipherAlgorithm == 'AES-256-GCM' &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll([
+        'uid', 'displayName', 'schoolClass', 'avatarColor',
+        'xp', 'streak', 'completedLevels', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid', 'displayName', 'schoolClass', 'avatarColor',
+        'xp', 'streak', 'completedLevels', 'updatedAt'
+      ]) &&
+      isValidId(data.uid) &&
+      data.uid == request.auth.uid &&
+      data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+      data.schoolClass is string && data.schoolClass.size() >= 1 && data.schoolClass.size() <= 40 &&
+      data.avatarColor is string && data.avatarColor.size() >= 4 && data.avatarColor.size() <= 20 &&
+      data.xp is int && data.xp >= 0 && data.xp <= 1000000 &&
+      data.streak is int && data.streak >= 0 && data.streak <= 3650 &&
+      data.completedLevels is int && data.completedLevels >= 0 && data.completedLevels <= 3 &&
+      data.updatedAt is timestamp;
+    }
+
+    // Collection: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerified() &&
+        isValidUserProfile(incoming()) &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Update Progress & XP
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'xp', 'streak', 'completedLevels', 'level1Stars', 'level2Stars', 'level3Stars', 'updatedAt'
+          ]) ||
+          // Action 2: Update Profile & Preferences
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'schoolClass', 'avatarColor', 'themeVariant', 'darkMode', 'systemLang', 'dailyReminderTime', 'updatedAt'
+          ]) ||
+          // Action 3: Full Sync Update
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName', 'schoolClass', 'avatarColor',
+            'xp', 'streak', 'completedLevels', 'level1Stars', 'level2Stars', 'level3Stars',
+            'themeVariant', 'darkMode', 'systemLang', 'dailyReminderTime', 'updatedAt'
+          ])
+        );
+
+      allow delete: if false;
+
+      // Subcollection: /users/{userId}/private/{vaultId}
+      match /private/{vaultId} {
+        allow get: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(vaultId) &&
+          vaultId == 'vault' &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+
+        allow list: if false;
+
+        allow create: if isVerified() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(vaultId) &&
+          vaultId == 'vault' &&
+          isValidUserPrivateVault(incoming()) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+
+        allow update: if isVerified() &&
+          isValidUserPrivateVault(incoming()) &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(vaultId) &&
+          vaultId == 'vault' &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'encryptedEmail', 'encryptedNotes', 'updatedAt'
+          ]) &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+
+        allow delete: if false;
+      }
+    }
+
+    // Collection: /leaderboard/{userId}
+    match /leaderboard/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && resource.data.xp >= 0;
+      allow list: if isSignedIn() && resource.data.xp >= 0 && resource.data.completedLevels <= 3;
+
+      allow create: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidLeaderboardEntry(incoming()) &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(userId));
+
+      allow update: if isVerified() &&
+        isValidLeaderboardEntry(incoming()) &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        incoming().uid == existing().uid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'schoolClass', 'avatarColor', 'xp', 'streak', 'completedLevels', 'updatedAt'
+        ]) &&
+        exists(/databases/$(database)/documents/users/$(userId));
+
+      allow delete: if false;
+    }
+  }
+}

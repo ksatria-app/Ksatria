@@ -1,0 +1,236 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Stores a Ksatria student profile and learning progression across procedural levels.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name of the student.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "schoolClass": {
+          "type": "string",
+          "description": "Grade or class identifier (e.g. Kelas 7A).",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "avatarColor": {
+          "type": "string",
+          "description": "Selected Ksatria crest accent color.",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "xp": {
+          "type": "number",
+          "description": "Total experience points earned."
+        },
+        "streak": {
+          "type": "number",
+          "description": "Current daily learning streak in days."
+        },
+        "completedLevels": {
+          "type": "number",
+          "description": "Highest completed procedural level (0 to 3)."
+        },
+        "level1Stars": {
+          "type": "number",
+          "description": "Stars earned in Level 1 (0 to 3)."
+        },
+        "level2Stars": {
+          "type": "number",
+          "description": "Stars earned in Level 2 (0 to 3)."
+        },
+        "level3Stars": {
+          "type": "number",
+          "description": "Stars earned in Level 3 (0 to 3)."
+        },
+        "themeVariant": {
+          "type": "string",
+          "description": "Selected purple theme customization.",
+          "enum": ["royal", "amethyst", "lavender"]
+        },
+        "darkMode": {
+          "type": "boolean",
+          "description": "Whether night comfort dark mode is enabled."
+        },
+        "systemLang": {
+          "type": "string",
+          "description": "System UI language (Indonesian or English).",
+          "enum": ["id", "en"]
+        },
+        "dailyReminderTime": {
+          "type": "string",
+          "description": "24-hour reminder time string HH:MM.",
+          "minLength": 4,
+          "maxLength": 10
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "schoolClass",
+        "avatarColor",
+        "xp",
+        "streak",
+        "completedLevels",
+        "level1Stars",
+        "level2Stars",
+        "level3Stars",
+        "themeVariant",
+        "darkMode",
+        "systemLang",
+        "dailyReminderTime",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateVault": {
+      "title": "UserPrivateVault",
+      "description": "Isolated private document storing AES-256-GCM client-side encrypted PII for the user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "encryptedEmail": {
+          "type": "string",
+          "description": "AES-256-GCM ciphertext of the user email.",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "encryptedNotes": {
+          "type": "string",
+          "description": "AES-256-GCM ciphertext of personal learning notes.",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "cipherAlgorithm": {
+          "type": "string",
+          "description": "Encryption algorithm identifier.",
+          "enum": ["AES-256-GCM"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "encryptedEmail",
+        "encryptedNotes",
+        "cipherAlgorithm",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Public competitive leaderboard record without PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Student display name on the leaderboard.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "schoolClass": {
+          "type": "string",
+          "description": "Student class/grade.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "avatarColor": {
+          "type": "string",
+          "description": "Crest color hex or key.",
+          "minLength": 4,
+          "maxLength": 20
+        },
+        "xp": {
+          "type": "number",
+          "description": "Total XP score."
+        },
+        "streak": {
+          "type": "number",
+          "description": "Active daily streak."
+        },
+        "completedLevels": {
+          "type": "number",
+          "description": "Levels completed (0 to 3)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the score update."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "schoolClass",
+        "avatarColor",
+        "xp",
+        "streak",
+        "completedLevels",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Owner-accessible student profile and level progression."
+    },
+    "/users/{userId}/private/{vaultId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivateVault"
+      },
+      "description": "Strictly isolated encrypted PII vault for the user."
+    },
+    "/leaderboard/{userId}": {
+      "schema": {
+        "$ref": "#/entities/LeaderboardEntry"
+      },
+      "description": "Publicly readable leaderboard entries for signed-in verified users."
+    }
+  }
+}

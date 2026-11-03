@@ -1,0 +1,6 @@
+{
+  "name": "Teka-Teki by Ksatria",
+  "description": "Game edukasi Bahasa Indonesia interaktif 3D bergaya Duolingo untuk melatih pemahaman Teks Prosedur melalui simulasi praktik langsung.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
